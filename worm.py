@@ -1,6 +1,9 @@
 import csv
+import math
+import time
 from pprint import pprint
-# import pygame
+
+import pygame
 
 THRESHOLD = 15
 
@@ -21,6 +24,12 @@ class WormBrain:
 
         self.leftSpeed = 0
         self.rightSpeed = 0
+
+        self.rotation = 0
+        self.speed = 0
+
+        self.x = 0
+        self.y = 0
 
         self.musclePrefixes = ['MVU', 'MVL', 'MDL', 'MVR', 'MDR']
         self.leftMuscles = [
@@ -138,6 +147,25 @@ class WormBrain:
             self.rightSpeed += self.neurons[rightMuscle][self.nextState]
             self.neurons[rightMuscle][self.nextState] = 0
 
+        self.rotation = self.rotation + \
+            ((self.leftSpeed - self.rightSpeed) / 19 * math.pi)
+        self.speed = (abs(self.leftSpeed) + abs(self.rightSpeed)) / 100
+        changex = math.cos(math.radians(brain.rotation)) * self.speed
+        changey = math.sin(math.radians(brain.rotation)) * self.speed
+
+        self.x += (math.cos(self.rotation) * self.speed)
+        self.y -= (math.sin(self.rotation) * self.speed)
+        
+        # print(self.rightSpeed, self.leftSpeed, self.rotation, self.speed)
+
+        self.x = max(0, self.x)
+        self.y = max(0, self.y)
+        self.x = min(self.x, 800)
+        self.y = min(self.y, 800)
+
+        self.leftSpeed *= 0.7
+        self.rightSpeed *= 0.7
+
     def runBrain(self):
         if self.isHungry:
             self.fireNeuron("RIML")
@@ -173,7 +201,35 @@ class WormBrain:
 
 brain = WormBrain('CElegansConnectome.csv', THRESHOLD)
 
-brain.neurons["ADAL"][0] = 15
-pprint(brain.neurons)
-brain.simulateConnectome()
-pprint(brain.neurons)
+import pygame
+
+pygame.init()
+
+screen = pygame.display.set_mode([800, 800])
+
+running = True
+lastHungry = time.time()
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    
+    screen.fill((255, 255, 255))
+    brain.runBrain()
+    if time.time() - lastHungry > 2:
+        brain.isHungry = True
+        lastHungry = time.time()
+    # else:
+    #     brain.isHungry = False
+    if abs(brain.x - 800) < 20 or brain.x < 20 or abs(brain.y - 800) < 20 or brain.y < 20:
+        brain.isTouched = True
+        brain.isHungry = False
+    else:
+        brain.isTouched = False
+    
+    print(brain.isHungry, brain.isTouched, brain.x, brain.y)
+    
+    pygame.draw.circle(screen, (0, 0, 255), (brain.x, brain.y), 25)
+    pygame.display.flip()
+    time.sleep(0.01)
+pygame.quit()
