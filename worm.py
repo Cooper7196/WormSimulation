@@ -146,26 +146,30 @@ class WormBrain:
 
         for leftMuscle in self.leftMuscles:
             self.leftSpeed += self.neurons[leftMuscle][self.nextState]
+            # self.neurons[leftMuscle][self.nextState] *= 0.7
+
             self.neurons[leftMuscle][self.nextState] = 0
             self.neurons[leftMuscle][self.currentState] = 0
 
         for rightMuscle in self.rightMuscles:
             self.rightSpeed += self.neurons[rightMuscle][self.nextState]
+            # self.neurons[rightMuscle][self.nextState] *= 0.7
+            
             self.neurons[rightMuscle][self.nextState] = 0
             self.neurons[rightMuscle][self.currentState] = 0
 
         # self.rotation = self.rotation + (self.rightSpeed - self.leftSpeed)
 
-        self.rotation += self.rightSpeed - self.leftSpeed
-        print(self.rotation)
-        # if self.rightSpeed > self.leftSpeed:
-        #     self.rotation += 5
-        # if self.leftSpeed > self.rightSpeed:
-        #     self.rotation -= 5
+        # self.rotation += self.rightSpeed - self.leftSpeed
+        # print(self.rotation)
+        if self.rightSpeed > self.leftSpeed:
+            self.rotation += 5
+        if self.leftSpeed > self.rightSpeed:
+            self.rotation -= 5
 
         self.speed = (abs(self.leftSpeed) + abs(self.rightSpeed))
 
-        self.speed = self.speed * 0.03
+        self.speed = self.speed / 100
 
 
         self.x += (math.cos(math.radians(self.rotation)) * self.speed)
@@ -266,11 +270,11 @@ class WormNode:
 
 brain = WormBrain('CElegansConnectome.csv', THRESHOLD)
 
-width = 2560
-height = 1440
+width = 1366
+height = 768
 pygame.init()
 screen = pygame.display.set_mode((width, height))
-worm = Worm(screen, 50, 0, 0, 25)
+worm = Worm(screen, 50, 0, 0, 7)
 clock = pygame.time.Clock()
 running = True
 
@@ -280,9 +284,11 @@ rotation = 0
 test = time.time()
 # brain.simulateFood()
 for i in range(40):
-    neuron = random.choice(list(brain.neurons.keys()))
-    brain.setNeuronToMax(neuron)
-    brain.runBrain()
+    
+    # neuron = random.choice(list(brain.neurons.keys()))
+    # brain.setNeuronToMax(neuron)
+    # brain.runBrain()
+    pass
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -293,9 +299,6 @@ while running:
         print("test")
         brain.simulateFood()
 
-    # elif keys[pygame.K_d]:
-    #     rotation += 3
-    
     brain.runBrain()
 
     
@@ -315,15 +318,14 @@ while running:
         brain.y = height
         brain.simulateTouch()
         print("touch")
-    # brain.isSensingFood = True
-    # worm.x += math.sin(math.radians(rotation)) * speed
-    # worm.y -= math.cos(math.radians(rotation)) * speed
+
+
+    screen.fill((155, 118, 83))
 
     worm.x = brain.x
     worm.y = brain.y
-
-    screen.fill((0, 0, 0))
     worm.update()
     worm.draw()
+
     pygame.display.update()
     clock.tick(60)
