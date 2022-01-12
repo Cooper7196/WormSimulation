@@ -1,8 +1,7 @@
 import csv
 import math
 import time
-from pprint import pprint
-
+import random
 import pygame
 
 THRESHOLD = 15
@@ -28,8 +27,8 @@ class WormBrain:
         self.rotation = 0
         self.speed = 0
 
-        self.x = 0
-        self.y = 0
+        self.x = 400
+        self.y = 400
 
         self.musclePrefixes = ['MVU', 'MVL', 'MDL', 'MVR', 'MDR']
         self.leftMuscles = [
@@ -124,13 +123,16 @@ class WormBrain:
         for i in self.connectome[neuron]:
             self.neurons[i][self.nextState] += self.connectome[neuron][i]
 
+    def setNeuronToMax(self, neuron):
+        self.neurons[neuron][self.currentState] = self.threshold
+
     def simulateConnectome(self):
         for neuron in self.connectome:
             if neuron[:3] not in self.musclePrefixes:
                 if self.neurons[neuron][self.currentState] >= self.threshold:
                     self.neurons[neuron][self.nextState] = 0
                     self.fireNeuron(neuron)
-
+        self.neurons["MVULVA"] = [0, 0]
         self.calculateMotion()
 
         for neuron in self.neurons:
@@ -139,97 +141,189 @@ class WormBrain:
         self.currentState, self.nextState = self.nextState, self.currentState
 
     def calculateMotion(self):
+        self.leftSpeed = 0
+        self.rightSpeed = 0
+
         for leftMuscle in self.leftMuscles:
             self.leftSpeed += self.neurons[leftMuscle][self.nextState]
             self.neurons[leftMuscle][self.nextState] = 0
+            self.neurons[leftMuscle][self.currentState] = 0
 
         for rightMuscle in self.rightMuscles:
             self.rightSpeed += self.neurons[rightMuscle][self.nextState]
             self.neurons[rightMuscle][self.nextState] = 0
+            self.neurons[rightMuscle][self.currentState] = 0
 
-        self.rotation = self.rotation + \
-            ((self.leftSpeed - self.rightSpeed) / 19 * math.pi)
-        self.speed = (abs(self.leftSpeed) + abs(self.rightSpeed)) / 100
-        changex = math.cos(math.radians(brain.rotation)) * self.speed
-        changey = math.sin(math.radians(brain.rotation)) * self.speed
+        # self.rotation = self.rotation + (self.rightSpeed - self.leftSpeed)
 
-        self.x += (math.cos(self.rotation) * self.speed)
-        self.y -= (math.sin(self.rotation) * self.speed)
+        self.rotation += self.rightSpeed - self.leftSpeed
+        print(self.rotation)
+        # if self.rightSpeed > self.leftSpeed:
+        #     self.rotation += 5
+        # if self.leftSpeed > self.rightSpeed:
+        #     self.rotation -= 5
+
+        self.speed = (abs(self.leftSpeed) + abs(self.rightSpeed))
+
+        self.speed = self.speed * 0.03
+
+
+        self.x += (math.cos(math.radians(self.rotation)) * self.speed)
+        self.y += (math.sin(math.radians(self.rotation)) * self.speed)
         
         # print(self.rightSpeed, self.leftSpeed, self.rotation, self.speed)
+    def simulateTouch(self):
+        self.setNeuronToMax("FLPR")
+        self.setNeuronToMax("FLPL")
+        self.setNeuronToMax("ASHL")
+        self.setNeuronToMax("ASHR")
+        self.setNeuronToMax("IL1VL")
+        self.setNeuronToMax("IL1VR")
+        self.setNeuronToMax("OLQDL")
+        self.setNeuronToMax("OLQDR")
+        self.setNeuronToMax("OLQVR")
+        self.setNeuronToMax("OLQVL")
 
-        self.x = max(0, self.x)
-        self.y = max(0, self.y)
-        self.x = min(self.x, 800)
-        self.y = min(self.y, 800)
-
-        self.leftSpeed *= 0.7
-        self.rightSpeed *= 0.7
+    def simulateFood(self):
+        self.setNeuronToMax("ADFL")
+        self.setNeuronToMax("ADFR")
+        self.setNeuronToMax("ASGR")
+        self.setNeuronToMax("ASGL")
+        self.setNeuronToMax("ASIL")
+        self.setNeuronToMax("ASIR")
+        self.setNeuronToMax("ASJR")
+        self.setNeuronToMax("ASJL")
+        self.setNeuronToMax("AWCL")
+        self.setNeuronToMax("AWCR")
+        self.setNeuronToMax("AWAL")
+        self.setNeuronToMax("AWAR")
 
     def runBrain(self):
-        if self.isHungry:
-            self.fireNeuron("RIML")
-            self.fireNeuron("RIMR")
-            self.fireNeuron("RICL")
-            self.fireNeuron("RICR")
-            self.simulateConnectome()
+        # if self.isHungry:
+        #     self.setNeuronToMax("RIML")
+        #     self.setNeuronToMax("RIMR")
+        #     self.setNeuronToMax("RICL")
+        #     self.setNeuronToMax("RICR")
+        #     self.simulateConnectome()
+        self.simulateConnectome()
 
-        if self.isTouched:
-            self.fireNeuron("FLPR")
-            self.fireNeuron("FLPL")
-            self.fireNeuron("ASHL")
-            self.fireNeuron("ASHR")
-            self.fireNeuron("IL1VL")
-            self.fireNeuron("IL1VR")
-            self.fireNeuron("OLQDL")
-            self.fireNeuron("OLQDR")
-            self.fireNeuron("OLQVR")
-            self.fireNeuron("OLQVL")
-            self.simulateConnectome()
 
-        if self.isSensingFood:
-            self.fireNeuron("ADFL")
-            self.fireNeuron("ADFR")
-            self.fireNeuron("ASGR")
-            self.fireNeuron("ASGL")
-            self.fireNeuron("ASIL")
-            self.fireNeuron("ASIR")
-            self.fireNeuron("ASJR")
-            self.fireNeuron("ASJL")
-            self.simulateConnectome()
+class Worm:
+    def __init__(self, screen, length, x, y, radius):
+        self.screen = screen
+        self.x = x
+        self.y = y
+
+        self.head = WormNode(screen, x, y, radius)
+        self.body = [self.head]
+
+        for i in range(length):
+            tmpWorm = WormNode(
+                screen, self.x, self.y, radius, leader=len(
+                    self.body) - 1)
+            tmpWorm.oldX = tmpWorm.x
+            tmpWorm.oldY = tmpWorm.y
+
+            self.body.append(tmpWorm)
+
+    def update(self):
+
+        self.head.oldX = self.x
+        self.head.oldY = self.y
+
+        self.head.x = self.x
+        self.head.y = self.y
+
+        for node in self.body[1:]:
+            node.oldX = node.x
+            node.oldY = node.y
+
+            node.x = self.body[node.leader].oldX
+            node.y = self.body[node.leader].oldY
+
+    def draw(self):
+        for node in self.body[1:]:
+            node.draw()
+        pygame.draw.circle(
+            self.body[0].screen, (255, 0, 0), [
+                self.body[0].x, self.body[0].y], self.body[0].radius)
+
+class WormNode:
+    def __init__(self, screen, x, y, radius, leader=None):
+        self.x, self.y = x, y
+        self.oldX, self.oldY = x, y
+        self.radius = radius
+        self.screen = screen
+        self.leader = leader
+
+    def draw(self):
+        """ Draw the worm """
+        pygame.draw.circle(
+            self.screen, (255, 255, 255), [
+                self.x, self.y], self.radius)
+        
 
 
 brain = WormBrain('CElegansConnectome.csv', THRESHOLD)
 
-import pygame
-
+width = 2560
+height = 1440
 pygame.init()
-
-screen = pygame.display.set_mode([800, 800])
-
+screen = pygame.display.set_mode((width, height))
+worm = Worm(screen, 50, 0, 0, 25)
+clock = pygame.time.Clock()
 running = True
-lastHungry = time.time()
+
+speed = 3
+rotation = 0
+# brain.isHungry = True
+test = time.time()
+# brain.simulateFood()
+for i in range(40):
+    neuron = random.choice(list(brain.neurons.keys()))
+    brain.setNeuronToMax(neuron)
+    brain.runBrain()
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_f]:
+        print("test")
+        brain.simulateFood()
+
+    # elif keys[pygame.K_d]:
+    #     rotation += 3
     
-    screen.fill((255, 255, 255))
     brain.runBrain()
-    if time.time() - lastHungry > 2:
-        brain.isHungry = True
-        lastHungry = time.time()
-    # else:
-    #     brain.isHungry = False
-    if abs(brain.x - 800) < 20 or brain.x < 20 or abs(brain.y - 800) < 20 or brain.y < 20:
-        brain.isTouched = True
-        brain.isHungry = False
-    else:
-        brain.isTouched = False
+
     
-    print(brain.isHungry, brain.isTouched, brain.x, brain.y)
-    
-    pygame.draw.circle(screen, (0, 0, 255), (brain.x, brain.y), 25)
-    pygame.display.flip()
-    time.sleep(0.01)
-pygame.quit()
+    if brain.x <= 0: 
+        brain.x = 0
+        brain.simulateTouch()
+        print("touch")
+    if brain.x >= width:
+        brain.x = width
+        brain.simulateTouch()
+        print("touch")
+    if brain.y <= 0:
+        brain.y = 0
+        brain.simulateTouch()
+        print("touch")
+    if brain.y >= height:
+        brain.y = height
+        brain.simulateTouch()
+        print("touch")
+    # brain.isSensingFood = True
+    # worm.x += math.sin(math.radians(rotation)) * speed
+    # worm.y -= math.cos(math.radians(rotation)) * speed
+
+    worm.x = brain.x
+    worm.y = brain.y
+
+    screen.fill((0, 0, 0))
+    worm.update()
+    worm.draw()
+    pygame.display.update()
+    clock.tick(60)

@@ -1,18 +1,19 @@
 import pygame
 import math
 
+
 class Worm:
-    def __init__(self, screen, length, x, y):
+    def __init__(self, screen, length, x, y, radius):
         self.screen = screen
         self.x = x
         self.y = y
-        
-        self.head = WormNode(screen, x, y, 20)
+
+        self.head = WormNode(screen, x, y, radius)
         self.body = [self.head]
 
         for i in range(length):
             tmpWorm = WormNode(
-                screen, self.x, self.y, 20, leader=len(
+                screen, self.x, self.y, radius, leader=len(
                     self.body) - 1)
             tmpWorm.oldX = tmpWorm.x
             tmpWorm.oldY = tmpWorm.y
@@ -56,7 +57,7 @@ width = 800
 height = 800
 pygame.init()
 screen = pygame.display.set_mode((width, height))
-worm = Worm(screen, 100, width/2, height/2)
+worm = Worm(screen, 35, width / 2, height / 2, 5)
 clock = pygame.time.Clock()
 running = True
 
