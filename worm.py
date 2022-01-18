@@ -5,6 +5,7 @@ import random
 import pygame
 
 THRESHOLD = 15
+CONNECTOMEFILE = "CElegansConnectome.csv"
 
 
 class WormBrain:
@@ -27,8 +28,8 @@ class WormBrain:
         self.rotation = 0
         self.speed = 0
 
-        self.x = 400
-        self.y = 400
+        # self.x = 400
+        # self.y = 400
 
         self.musclePrefixes = ['MVU', 'MVL', 'MDL', 'MVR', 'MDR']
         self.leftMuscles = [
@@ -154,7 +155,7 @@ class WormBrain:
         for rightMuscle in self.rightMuscles:
             self.rightSpeed += self.neurons[rightMuscle][self.nextState]
             # self.neurons[rightMuscle][self.nextState] *= 0.7
-            
+
             self.neurons[rightMuscle][self.nextState] = 0
             self.neurons[rightMuscle][self.currentState] = 0
 
@@ -171,10 +172,9 @@ class WormBrain:
 
         self.speed = self.speed / 100
 
-
         self.x += (math.cos(math.radians(self.rotation)) * self.speed)
         self.y += (math.sin(math.radians(self.rotation)) * self.speed)
-        
+
         # print(self.rightSpeed, self.leftSpeed, self.rotation, self.speed)
     def simulateTouch(self):
         self.setNeuronToMax("FLPR")
@@ -220,6 +220,12 @@ class Worm:
 
         self.head = WormNode(screen, x, y, radius)
         self.body = [self.head]
+        self.brain = WormBrain(CONNECTOMEFILE, THRESHOLD)
+        self.brain.x = x
+        self.brain.y = y
+        for i in range(40):
+            neuron = random.choice(list(self.brain.neurons.keys()))
+            self.brain.setNeuronToMax(neuron)
 
         for i in range(length):
             tmpWorm = WormNode(
@@ -232,11 +238,28 @@ class Worm:
 
     def update(self):
 
+        self.brain.runBrain()
+        self.x = self.brain.x
+        self.y = self.brain.y
+
         self.head.oldX = self.x
         self.head.oldY = self.y
 
         self.head.x = self.x
         self.head.y = self.y
+
+        if self.brain.x <= 0:
+            self.brain.x = 0
+            self.brain.simulateTouch()
+        elif self.brain.x >= width:
+            self.brain.x = width
+            self.brain.simulateTouch()
+        elif self.brain.y <= 0:
+            self.brain.y = 0
+            self.brain.simulateTouch()
+        elif self.brain.y >= height:
+            self.brain.y = height
+            self.brain.simulateTouch()
 
         for node in self.body[1:]:
             node.oldX = node.x
@@ -252,6 +275,7 @@ class Worm:
             self.body[0].screen, (255, 0, 0), [
                 self.body[0].x, self.body[0].y], self.body[0].radius)
 
+
 class WormNode:
     def __init__(self, screen, x, y, radius, leader=None):
         self.x, self.y = x, y
@@ -265,30 +289,29 @@ class WormNode:
         pygame.draw.circle(
             self.screen, (255, 255, 255), [
                 self.x, self.y], self.radius)
-        
 
-
-brain = WormBrain('CElegansConnectome.csv', THRESHOLD)
 
 width = 1366
 height = 768
 pygame.init()
 screen = pygame.display.set_mode((width, height))
-worm = Worm(screen, 50, 0, 0, 7)
 clock = pygame.time.Clock()
 running = True
 
-speed = 3
-rotation = 0
-# brain.isHungry = True
-test = time.time()
-# brain.simulateFood()
-for i in range(40):
-    
-    # neuron = random.choice(list(brain.neurons.keys()))
-    # brain.setNeuronToMax(neuron)
-    # brain.runBrain()
-    pass
+worms = [
+    Worm(
+        screen,
+        50,
+        random.randint(
+            100,
+            width -
+            100),
+        random.randint(
+            100,
+            height -
+            100),
+        7) for i in range(10)]
+
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -296,36 +319,12 @@ while running:
 
     keys = pygame.key.get_pressed()
     if keys[pygame.K_f]:
-        print("test")
-        brain.simulateFood()
-
-    brain.runBrain()
-
-    
-    if brain.x <= 0: 
-        brain.x = 0
-        brain.simulateTouch()
-        print("touch")
-    if brain.x >= width:
-        brain.x = width
-        brain.simulateTouch()
-        print("touch")
-    if brain.y <= 0:
-        brain.y = 0
-        brain.simulateTouch()
-        print("touch")
-    if brain.y >= height:
-        brain.y = height
-        brain.simulateTouch()
-        print("touch")
-
+        pass
 
     screen.fill((155, 118, 83))
-
-    worm.x = brain.x
-    worm.y = brain.y
-    worm.update()
-    worm.draw()
+    for worm in worms:
+        worm.update()
+        worm.draw()
 
     pygame.display.update()
     clock.tick(60)
