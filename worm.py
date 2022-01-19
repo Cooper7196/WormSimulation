@@ -291,6 +291,9 @@ class WormNode:
                 self.x, self.y], self.radius)
 
 
+def convertRange(value, r1, r2):
+    return (value - r1[0]) * (r2[1] - r2[0]) / (r1[1] - r1[0]) + r2[0]
+
 width = 1366
 height = 768
 pygame.init()
@@ -312,6 +315,9 @@ worms = [
             100),
         7) for i in range(10)]
 
+wormPositions = {index: [] for index, worm in enumerate(worms)}
+print(wormPositions)
+surf = pygame.Surface((260, 160), pygame.SRCALPHA)
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -320,11 +326,23 @@ while running:
     keys = pygame.key.get_pressed()
     if keys[pygame.K_f]:
         pass
-
     screen.fill((155, 118, 83))
-    for worm in worms:
+    
+    circle = pygame.draw.circle(surf, (0, 0, 0, 255), (500, 500), 50)
+    screen.blit(surf, circle)
+
+    for worm, positions in wormPositions.items():
+        for index, position in enumerate(positions):
+            index
+            alpha = convertRange(index, [0, len(positions)], [0, 255])
+            print(alpha)
+            pygame.draw.circle(screen, (0, 0, 0, alpha), position, 7)
+
+    for index, worm in enumerate(worms):
+        wormPositions[index].append((worm.x, worm.y))
         worm.update()
         worm.draw()
+
 
     pygame.display.update()
     clock.tick(60)
