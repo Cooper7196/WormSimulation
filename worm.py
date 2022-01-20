@@ -202,6 +202,22 @@ class WormBrain:
         self.setNeuronToMax("AWAL")
         self.setNeuronToMax("AWAR")
 
+    def simulateHunger(self):
+        self.setNeuronToMax("RIML")
+        self.setNeuronToMax("RIMR")
+        self.setNeuronToMax("RICL")
+        self.setNeuronToMax("RICR")
+
+    def simulateSmell(self):
+        self.setNeuronToMax("ADFL")
+        self.setNeuronToMax("ADFR")
+        self.setNeuronToMax("ASGR")
+        self.setNeuronToMax("ASGL")
+        self.setNeuronToMax("ASIL")
+        self.setNeuronToMax("ASIR")
+        self.setNeuronToMax("ASJR")
+        self.setNeuronToMax("ASJL")
+
     def runBrain(self):
         # if self.isHungry:
         #     self.setNeuronToMax("RIML")
@@ -237,7 +253,8 @@ class Worm:
             self.body.append(tmpWorm)
 
     def update(self):
-
+        lastFoodTime = time.time()
+        # if 
         self.brain.runBrain()
         self.x = self.brain.x
         self.y = self.brain.y
@@ -294,6 +311,7 @@ class WormNode:
 def convertRange(value, r1, r2):
     return (value - r1[0]) * (r2[1] - r2[0]) / (r1[1] - r1[0]) + r2[0]
 
+
 width = 1366
 height = 768
 pygame.init()
@@ -317,7 +335,8 @@ worms = [
 
 wormPositions = {index: [] for index, worm in enumerate(worms)}
 print(wormPositions)
-surf = pygame.Surface((260, 160), pygame.SRCALPHA)
+food = []
+surf = pygame.Surface((width, height), pygame.SRCALPHA)
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -327,22 +346,26 @@ while running:
     if keys[pygame.K_f]:
         pass
     screen.fill((155, 118, 83))
-    
-    circle = pygame.draw.circle(surf, (0, 0, 0, 255), (500, 500), 50)
-    screen.blit(surf, circle)
+
+    circle = pygame.draw.circle(surf, (0, 0, 0, 50), (0, 0), 50)
 
     for worm, positions in wormPositions.items():
+        positions = positions[5:]
         for index, position in enumerate(positions):
-            index
             alpha = convertRange(index, [0, len(positions)], [0, 255])
-            print(alpha)
-            pygame.draw.circle(screen, (0, 0, 0, alpha), position, 7)
+            alpha = 255
+            # print(alpha)
+            pygame.draw.circle(surf, (0, 0, 0, alpha), position, 7)
+    screen.blit(surf, (0, 0))
 
     for index, worm in enumerate(worms):
         wormPositions[index].append((worm.x, worm.y))
         worm.update()
         worm.draw()
-
-
+    if pygame.mouse.get_pressed()[0]:
+        mouseX, mouseY = pygame.mouse.get_pos()
+        food.append((mouseX, mouseY))
+    for item in food:
+        pygame.draw.circle(screen, (0, 255, 0), item, 7)
     pygame.display.update()
     clock.tick(60)
