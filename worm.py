@@ -230,10 +230,11 @@ class WormBrain:
 
 class Worm:
     def __init__(self, screen, length, x, y, radius):
+        self.totalFood = 0
         self.screen = screen
         self.x = x
         self.y = y
-
+        self.lastFoodTime = time.time()
         self.head = WormNode(screen, x, y, radius)
         self.body = [self.head]
         self.brain = WormBrain(CONNECTOMEFILE, THRESHOLD)
@@ -253,8 +254,25 @@ class Worm:
             self.body.append(tmpWorm)
 
     def update(self):
-        lastFoodTime = time.time()
+        # for food in foodObjects:
         # if 
+
+        for food in foodObjects:
+            dist = math.hypot(food[0] - self.x, food[1] - self.y)
+            if dist < 75:
+                self.brain.simulateSmell()
+                if dist < 14:
+                    self.lastFoodTime = time.time()
+                    self.brain.simulateFood()
+                    self.brain.simulateTouch()
+                    # print("Food found")
+                    self.totalFood += 1
+                    print(f"{self.totalFood} food found in {time.time() - startTime} seconds")
+                    foodObjects.remove(food)
+        if time.time() - self.lastFoodTime > 5:
+            self.brain.simulateHunger()
+            self.lastFoodTime = time.time()
+            # print("Hungry")
         self.brain.runBrain()
         self.x = self.brain.x
         self.y = self.brain.y
@@ -288,6 +306,10 @@ class Worm:
     def draw(self):
         for node in self.body[1:]:
             node.draw()
+        font = pygame.font.SysFont(None, 24)
+        img = font.render(f"{self.totalFood}", False, (0, 0, 0))
+        screen.blit(img, (self.x, self.y - 20))
+
         pygame.draw.circle(
             self.body[0].screen, (255, 0, 0), [
                 self.body[0].x, self.body[0].y], self.body[0].radius)
@@ -315,10 +337,12 @@ def convertRange(value, r1, r2):
 width = 1366
 height = 768
 pygame.init()
+startTime = time.time()
 screen = pygame.display.set_mode((width, height))
 clock = pygame.time.Clock()
 running = True
-
+wormCount = 10
+startingFoodCount = 100
 worms = [
     Worm(
         screen,
@@ -331,16 +355,27 @@ worms = [
             100,
             height -
             100),
-        7) for i in range(10)]
+        7) for i in range(wormCount)]
 
 wormPositions = {index: [] for index, worm in enumerate(worms)}
 print(wormPositions)
-food = []
+foodObjects = [
+    (random.randint(
+        30,
+        width -
+        30),
+        random.randint(
+            30,
+            height -
+        30)) for i in range(startingFoodCount)]
 surf = pygame.Surface((width, height), pygame.SRCALPHA)
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            mouseX, mouseY = pygame.mouse.get_pos()
+            foodObjects.append((mouseX, mouseY))
 
     keys = pygame.key.get_pressed()
     if keys[pygame.K_f]:
@@ -353,19 +388,17 @@ while running:
         positions = positions[5:]
         for index, position in enumerate(positions):
             alpha = convertRange(index, [0, len(positions)], [0, 255])
-            alpha = 255
+            alpha = 150
             # print(alpha)
-            pygame.draw.circle(surf, (0, 0, 0, alpha), position, 7)
+            pygame.draw.circle(surf, (90, 92, 65, alpha), position, 7)
     screen.blit(surf, (0, 0))
 
     for index, worm in enumerate(worms):
-        wormPositions[index].append((worm.x, worm.y))
+        # wormPositions[index].append((worm.x, worm.y))
         worm.update()
         worm.draw()
-    if pygame.mouse.get_pressed()[0]:
-        mouseX, mouseY = pygame.mouse.get_pos()
-        food.append((mouseX, mouseY))
-    for item in food:
+        
+    for item in foodObjects:
         pygame.draw.circle(screen, (0, 255, 0), item, 7)
     pygame.display.update()
     clock.tick(60)
